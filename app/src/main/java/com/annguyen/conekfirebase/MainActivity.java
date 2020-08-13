@@ -34,9 +34,10 @@ import java.util.Date;
 
 public class MainActivity extends AppCompatActivity implements View.OnClickListener {
     public static DatabaseReference mData;
+
     ListView listCustomers;
     TextView ngayThangCheck;
-    SwipeRefreshLayout refreshLayout;
+
     Spinner spinKhachHang;
     String duLieuTraCuu;
     public static AdapterKhachHang adapterKhachHang;
@@ -82,6 +83,9 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                     }
                 }
                 ngayThangCheck.setText(dateTimePick.toString());
+                arrayCustomersTouch.clear();
+                adapterKhachHang.notifyDataSetChanged();
+                LayDuLieuDemoVe(duLieuTraCuu,ngayThangCheck.getText().toString());
             }
         };
 
@@ -93,7 +97,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 if(snapshot.exists()){
                     for (DataSnapshot snapshot1 : snapshot.getChildren()){
                         //Toast.makeText(MainActivity.this,snapshot1.child("name").getValue().toString(),Toast.LENGTH_SHORT).show();
-                        String keyTag = snapshot1.getKey();
+                        String keyTag = snapshot1.getKey() + " - " + snapshot1.child("name").getValue().toString();
                         ThongTinKhachHang thongTinKhachHang = new ThongTinKhachHang("","","");
                         thongTinKhachHang.setMaKhachHang(snapshot1.child("uid").getValue().toString());
                         thongTinKhachHang.setNameKhachHang(snapshot1.child("name").getValue().toString());
@@ -114,27 +118,6 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             }
         });
 
-        mData.child("DulieuTest").child("123456").addValueEventListener(new ValueEventListener() {
-            @Override
-            public void onDataChange(@NonNull DataSnapshot snapshot) {
-                arrayCustomersTouch.clear();
-                //snapshot.child(duLieuTraCuu);
-                if(snapshot.exists()){
-                    for (DataSnapshot snapshot1 : snapshot.getChildren()){
-                        Toast.makeText(MainActivity.this,snapshot1.getKey(),Toast.LENGTH_SHORT).show();
-//                        ThongTinKhachHangTouch thongTinKhachHangTouch = new ThongTinKhachHangTouch("","","");
-//                        thongTinKhachHangTouch.setMaKhachHang(snapshot1.child(duLieuTraCuu).getValue().toString());
-                    }
-                }else {
-
-                }
-            }
-
-            @Override
-            public void onCancelled(@NonNull DatabaseError error) {
-
-            }
-        });
     }
 
     private void AnhXa() {
@@ -143,14 +126,16 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         spinKhachHang = findViewById(R.id.spinDanhSachTag);
         arrayCustomers = new ArrayList<>();
         arrayCustomersTouch = new ArrayList<>();
-
-       // adapterKhachHang = new AdapterKhachHang(MainActivity.this,R.layout.dong_du_lieu,arrayCustomers);
+        ThongTinKhachHangTouch thongTinKhachHangTouch = new ThongTinKhachHangTouch("01","An Nguyen","08:47:06");
+        arrayCustomersTouch.add(thongTinKhachHangTouch);
+        // adapterKhachHang = new AdapterKhachHang(MainActivity.this,R.layout.dong_du_lieu,arrayCustomers);
 //        listCustomers.setAdapter(adapterKhachHang);
         danhSachThes = new ArrayList<>();
+        adapterKhachHang = new AdapterKhachHang(MainActivity.this,R.layout.dong_du_lieu,arrayCustomersTouch);
         adapter = new ArrayAdapter<String> (this,android.R.layout.simple_spinner_dropdown_item,danhSachThes);
         adapter.setDropDownViewResource(android.R.layout.simple_list_item_single_choice);
         spinKhachHang.setAdapter(adapterKhachHang);
-
+        listCustomers.setAdapter(adapterKhachHang);
         adapter = new ArrayAdapter(this,android.R.layout.simple_list_item_1,danhSachThes);
         spinKhachHang.setAdapter(adapter);
 
@@ -159,7 +144,11 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         spinKhachHang.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
             @Override
             public void onItemSelected(AdapterView<?> adapterView, View view, int i, long l) {
-                duLieuTraCuu = danhSachThes.get(i);
+                arrayCustomersTouch.clear();
+                adapterKhachHang.notifyDataSetChanged();
+                String[] duLieuDemoCheck = danhSachThes.get(i).split("-");
+                duLieuTraCuu = duLieuDemoCheck[0].trim();
+                LayDuLieuDemoVe(duLieuTraCuu,ngayThangCheck.getText().toString());
             }
 
             @Override
@@ -168,7 +157,39 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             }
         });
     }
+    void LayDuLieuDemoVe(final String uidCheck, String dateCheck){
+        mData.child("DulieuTest").child(uidCheck).child(dateCheck).addValueEventListener(new ValueEventListener() {
+            @Override
+            public void onDataChange(@NonNull DataSnapshot snapshot) {
+                arrayCustomersTouch.clear();
+                if(snapshot.exists()){
+                    for (DataSnapshot snapshot1 : snapshot.getChildren()){
+                        ThongTinKhachHangTouch thongTinKhachHangTouch = new ThongTinKhachHangTouch("","","");
+                        String[] dataR = snapshot1.getValue().toString().split(",");
+                        thongTinKhachHangTouch.setThoiGianTouch(dataR[0]);
+                        for(ThongTinKhachHang thongTinKhachHang:arrayCustomers){
+                            if(thongTinKhachHang.getMaKhachHang().equals(uidCheck)){
+                                thongTinKhachHangTouch.setNameKhachHang(thongTinKhachHang.getNameKhachHang());
+                                thongTinKhachHangTouch.setMaKhachHang(uidCheck);
+                                arrayCustomersTouch.add(thongTinKhachHangTouch);
+                                adapterKhachHang.notifyDataSetChanged();
 
+                            }
+                        }
+
+                    }
+                }else {
+                    mData.removeEventListener(this);
+                }
+            }
+
+            @Override
+            public void onCancelled(@NonNull DatabaseError error) {
+
+            }
+        });
+
+    }
     @Override
     public void onClick(View view) {
         switch (view.getId()){
